@@ -63,6 +63,13 @@ eastatedir:
     - group: 939
     - makedirs: True
 
+custommappingsdir:
+  file.directory:
+    - name: /nsm/custom-mappings
+    - user: 947
+    - group: 939
+    - makedirs: True
+
 eapackageupgrade:
   file.managed:
     - name: /usr/sbin/so-elastic-fleet-package-upgrade
