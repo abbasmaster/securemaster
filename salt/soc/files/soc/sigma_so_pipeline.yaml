@@ -106,3 +106,23 @@ transformations:
         - type: include_fields
           fields:
           - event.code
+    # Maps process_creation rules to endpoint process creation logs
+    # This is an OS-agnostic mapping, to account for logs that don't specify source OS
+    - id: endpoint_process_create_windows_add-fields
+      type: add_condition
+      conditions:
+        event.category: 'process'
+        event.type: 'start'
+      rule_conditions:
+      - type: logsource
+        category: process_creation
+    # Maps file_event rules to endpoint file creation logs
+    # This is an OS-agnostic mapping, to account for logs that don't specify source OS
+    - id: endpoint_file_create_add-fields
+      type: add_condition
+      conditions:
+        event.category: 'file'
+        event.type: 'creation'
+      rule_conditions:
+      - type: logsource
+        category: file_event
