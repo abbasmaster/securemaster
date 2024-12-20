@@ -49,16 +49,6 @@ navigatorconfig:
     - makedirs: True
     - template: jinja
 
-navigatordefaultlayer:
-  file.managed:
-    - name: /opt/so/conf/navigator/layers/nav_layer_playbook.json
-    - source: salt://nginx/files/nav_layer_playbook.json
-    - user: 939
-    - group: 939
-    - makedirs: True
-    - replace: False
-    - template: jinja
-
 navigatorpreattack:
   file.managed:
     - name: /opt/so/conf/navigator/layers/pre-attack.json
