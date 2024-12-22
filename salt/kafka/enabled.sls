@@ -50,11 +50,12 @@ so-kafka:
       {% endfor %}
     - binds:
       - /etc/pki/kafka.p12:/etc/pki/kafka.p12:ro
+      - /etc/pki/kafka-client.p12:/etc/pki/kafka-client.p12:ro
       - /opt/so/conf/kafka/kafka-truststore.jks:/etc/pki/kafka-truststore.jks:ro
       - /nsm/kafka/data/:/nsm/kafka/data/:rw
       - /opt/so/log/kafka:/opt/kafka/logs/:rw
       - /opt/so/conf/kafka/server.properties:/opt/kafka/config/kraft/server.properties:ro
-      - /opt/so/conf/kafka/client.properties:/opt/kafka/config/kraft/client.properties
+      - /opt/so/conf/kafka/client.properties:/opt/kafka/config/kraft/client.properties:ro
     - watch:
       {% for sc in ['server', 'client'] %}
       - file: kafka_kraft_{{sc}}_properties

@@ -6,6 +6,7 @@
 {% from 'allowed_states.map.jinja' import allowed_states %}
 {% if sls.split('.')[0] in allowed_states %}
 {%   from 'vars/globals.map.jinja' import GLOBALS %}
+{%   set kafka_external_certs = salt['pillar.get']('kafka:config:external') %}
 
 kafka_group:
   group.present:
@@ -68,6 +69,31 @@ kafka_kraft_{{sc}}_properties:
     - makedirs: True
     - show_changes: False
 {%   endfor %}
+
+{% if GLOBALS.is_manager and kafka_external_certs %}
+{%   for external, values in kafka_external_certs.items() %}
+custom_cert_dir_{{ external }}:
+  file.directory:
+    - name: /opt/so/conf/kafka/{{ external }}
+    - user: 939
+    - group: 939
+    - makedirs: True
+
+custom_cert_{{ external }}_properties:
+  file.managed:
+    - source: salt://kafka/etc/external.properties.jinja
+    - name: /opt/so/conf/kafka/{{ external }}/{{ values.name }}.properties
+    - template: jinja
+    - mode: 600
+    - user: 939
+    - group: 939
+    - makedirs: True
+    - show_changes: False
+    - defaults:
+        external: {{ external }}
+        values: {{ values }}
+{%   endfor %}
+{% endif %}
 
 reset_quorum_on_changes:
   cmd.run:

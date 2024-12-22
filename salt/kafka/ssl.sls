@@ -7,6 +7,7 @@
 {% if sls.split('.')[0] in allowed_states or sls in allowed_states %}
 {%   from 'vars/globals.map.jinja' import GLOBALS %}
 {%   set kafka_password = salt['pillar.get']('kafka:config:password') %}
+{%   set kafka_external_certs = salt['pillar.get']('kafka:config:external') %}
 
 include:
   - ca.dirs
@@ -51,6 +52,93 @@ kafka_client_crt:
     - retry:
         attempts: 5
         interval: 30
+
+  cmd.run:
+    - name: "/usr/bin/openssl pkcs12 -inkey /etc/pki/kafka-client.key -in /etc/pki/kafka-client.crt -export -out /etc/pki/kafka-client.p12 -nodes -passout pass:{{ kafka_password }}"
+    - onchanges:
+      - x509: /etc/pki/kafka-client.key
+
+kafka_client_pkcs12_perms:
+  file.managed:
+    - name: /etc/pki/kafka-client.p12
+    - mode: 640
+    - user: 960
+    - group: 939
+
+{%   if kafka_external_certs %}
+{%     for external, values in kafka_external_certs.items() %}
+{%       if values.enabled %}
+
+kafka_{{ external }}_key:
+  x509.private_key_managed:
+    - name: /opt/so/conf/kafka/{{ external }}/{{ values.name }}.key
+    - keysize: 4096
+    - backup: True
+    - new: True
+    {% if salt['file.file_exists']('/opt/so/conf/kafka/' ~ external ~ '/' ~ values.name ~ '.key') -%}
+    - prereq:
+      - x509: /opt/so/conf/kafka/{{ external }}/{{ values.name }}.crt
+    {%- endif %}
+    - retry:
+        attempts: 5
+        interval: 30
+
+kafka_{{ external }}_crt:
+  x509.certificate_managed:
+    - name: /opt/so/conf/kafka/{{ external }}/{{ values.name }}.crt
+    - ca_server: {{ ca_server }}
+    - subjectAltName: DNS:{{ values.hostname }}, IP:{{ values.ip }}
+    - signing_policy: kafka
+    - private_key: /opt/so/conf/kafka/{{ external }}/{{ values.name }}.key
+    - CN: {{ values.hostname }}
+    - days_remaining: 0
+    - days_valid: {{ values.days_valid }}
+    - backup: True
+    - timeout: 30
+    - retry:
+        attempts: 5
+        interval: 30
+
+  cmd.run:
+    - name: "/usr/bin/openssl pkcs12 -inkey /opt/so/conf/kafka/{{ external }}/{{ values.name }}.key -in /opt/so/conf/kafka/{{ external }}/{{ values.name }}.crt -export -out /opt/so/conf/kafka/{{ external }}/{{ values.name }}.p12 -nodes -passout pass:{{ values.password }}"
+    - onchanges:
+      - x509: /opt/so/conf/kafka/{{ external }}/{{ values.name }}.key
+
+kafka_{{ external }}_key_perms:
+  file.managed:
+    - replace: False
+    - name: /opt/so/conf/kafka/{{ external }}/{{ values.name }}.key
+    - mode: 600
+    - user: 939
+    - group: 939
+
+kafka_{{ external }}_crt_perms:
+  file.managed:
+    - replace: False
+    - name: /opt/so/conf/kafka/{{ external }}/{{ values.name }}.crt
+    - mode: 600
+    - user: 939
+    - group: 939
+
+kafka_{{ external }}_pkcs12_perms:
+  file.managed:
+    - replace: False
+    - name: /opt/so/conf/kafka/{{ external }}//{{ values.name }}.p12
+    - mode: 600
+    - user: 939
+    - group: 939
+
+kafka_{{ external }}_truststore:
+  file.managed:
+    - replace: False
+    - name: /opt/so/conf/kafka/{{ external }}/kafka-truststore.jks
+    - source: salt://kafka/files/kafka-truststore
+    - mode: 600
+    - user: 939
+    - group: 939
+{%       endif %}
+{%     endfor %}
+{%   endif %}
 
 kafka_client_key_perms:
   file.managed:

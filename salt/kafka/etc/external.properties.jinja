@@ -1,0 +1,14 @@
+{# Copyright Security Onion Solutions LLC and/or licensed to Security Onion Solutions LLC under one
+   or more contributor license agreements. Licensed under the Elastic License 2.0 as shown at 
+   https://securityonion.net/license; you may not use this file except in compliance with the
+   Elastic License 2.0. #}
+
+{%- from 'kafka/config.map.jinja' import KAFKACLIENT with context %}
+{%- set custom_key_path = "/opt/so/conf/kafka/" ~ external ~ "/" ~ values.name ~ ".p12" %}
+{%- set custom_trust_path = "/opt/so/conf/kafka/" ~ external ~ "/kafka-truststore.jks" -%}
+
+{%- do KAFKACLIENT.update({'ssl_x_keystore_x_password': values.password }) %}
+{%- do KAFKACLIENT.update({'ssl_x_keystore_x_location': custom_key_path }) %}
+{%- do KAFKACLIENT.update({'ssl_x_truststore_x_location': custom_trust_path }) -%}
+
+{{ KAFKACLIENT | yaml(False) | replace("_x_", ".") }}
